@@ -1,0 +1,44 @@
+name: "Formato de título del PR"
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Validar título"
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd #v8.0.0
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        with:
+          script: |
+            const title = process.env.PR_TITLE
+            // fix/test/refactor deben indicar el PoC; ci/chore/docs pueden usar un scope libre u omitirlo
+            const poc = 'PoC-(AUT|USR|OPE|LOG)-\\d{2}'
+            const pattern = new RegExp(
+              `^((fix|test|refactor)\\(${poc}\\)|(ci|chore|docs)(\\((${poc}|[a-z-]+)\\))?): \\S.{9,}$`
+            )
+            if (pattern.test(title)) {
+              console.log(`✅ Título válido: "${title}"`)
+              return
+            }
+            core.setFailed([
+              `❌ Título inválido: "${title}"`,
+              '',
+              'Formato esperado:  <tipo>(PoC-<MÓDULO>-NN): <descripción de al menos 10 caracteres>',
+              '  - Módulos: AUT, USR, OPE, LOG',
+              '  - fix, test, refactor  → el scope PoC es obligatorio',
+              '  - ci, chore, docs      → scope opcional',
+              '',
+              'Ejemplos:',
+              '  fix(PoC-USR-03): parametrizar consulta del login',
+              '  fix(PoC-LOG-02): sanitizar saltos de línea antes de escribir en el log',
+              '  docs: actualizar informe de la fase 3',
+              '',
+              'Ver CONVENCIONES_GIT.md'
+            ].join('\n'))
