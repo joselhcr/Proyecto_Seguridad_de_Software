@@ -6,9 +6,8 @@ on:
     branches: [master]
     paths-ignore:
       - '*.md'
+  # Sin filtro de rutas: lint es un check obligatorio y debe correr en todos los PRs
   pull_request:
-    paths-ignore:
-      - '*.md'
 env:
   NODE_DEFAULT_VERSION: 24
   NODE_OPTIONS: "--max_old_space_size=4096"
