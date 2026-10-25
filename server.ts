@@ -434,6 +434,9 @@ function configureApp (app: ReturnType<typeof express>, seq: typeof sequelize) {
         res.status(400).send(res.__('Invalid email/password cannot be empty'))
       }
     }
+    /* Only accept the registration form fields; the role is always assigned by the server */
+    const { email, password, passwordRepeat } = req.body
+    req.body = { email, password, passwordRepeat, role: security.roles.customer }
     next()
   })
   app.post('/api/Users', verify.registerAdminChallenge())
