@@ -1,30 +1,20 @@
 <!--
-Título del PR:  <tipo>(PoC-NN): <descripción>
-Ejemplo:        fix(PoC-03): parametrizar consulta de login para evitar SQLi
+Título:  <tipo>(PoC-<MÓDULO>-NN): <descripción>
+Ejemplo: fix(PoC-USR-03): parametrizar consulta del login
+Rama:    fix/PoC-USR-03-descripcion-corta
+Guía completa: CONVENCIONES_GIT.md
 -->
 
-### PoC atendido
+### 1. Ficha y trazabilidad
+- **Responsable:** @usuario
+- **Módulo:** <!-- Autenticación / Gestión de Usuarios / Operaciones / Logs -->
+- **PoC:** PoC-XXX-NN
 
-- **PoC:** PoC-NN
-- **Módulo:** <!-- auth / usuarios / operaciones / logs -->
-- **Vulnerabilidad / CWE:** <!-- ej. SQL Injection (CWE-89) -->
+### 2. Mapeo de la vulnerabilidad
+- **OWASP Top 10:** <!-- ej. A03:2021 - Injection -->
+- **NIST CSF 2.0:** <!-- ej. PR.AA-01 -->
+- **Archivos / líneas afectadas:** <!-- ej. routes/login.ts:34 -->
+- **Causa raíz:** <!-- por qué el código permitía el ataque -->
 
-### Causa raíz
-
-<!-- Qué parte del código permitía el ataque y por qué. -->
-
-### Cambio aplicado
-
-<!-- Qué se modificó y en qué archivos. -->
-
-### Evidencia
-
-- **Antes:** <!-- payload / captura que demuestra el exploit -->
-- **Después:** <!-- mismo payload, ahora bloqueado -->
-
-### Checklist
-
-- [ ] El título sigue el formato `tipo(PoC-NN): descripción`
-- [ ] Probé el exploit después del cambio y ya no funciona
-- [ ] La funcionalidad legítima sigue funcionando
-- [ ] Actualicé la documentación del PoC si correspondía
+### 3. Cambio aplicado
+<!-- Qué se corrigió y por qué ataca la causa raíz y no solo el síntoma. -->
