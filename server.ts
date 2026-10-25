@@ -435,7 +435,11 @@ function configureApp (app: ReturnType<typeof express>, seq: typeof sequelize) {
       }
     }
     /* Only accept the registration form fields; the role is always assigned by the server */
-    const { email, password, passwordRepeat } = req.body
+    const { email, password, passwordRepeat, securityQuestion, securityAnswer, ...disallowedFields } = req.body
+    if (Object.keys(disallowedFields).length > 0) {
+      /* JSON.stringify escapes line breaks so attacker-controlled values cannot forge log entries */
+      logger.warn(`Registration with disallowed fields ${JSON.stringify(Object.keys(disallowedFields))} for email ${JSON.stringify(email)} from ${req.socket.remoteAddress}`)
+    }
     req.body = { email, password, passwordRepeat, role: security.roles.customer }
     next()
   })
