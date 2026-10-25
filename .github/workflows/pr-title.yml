@@ -1,0 +1,42 @@
+name: "Formato de título del PR"
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Validar título"
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd #v8.0.0
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        with:
+          script: |
+            const title = process.env.PR_TITLE
+            // fix/test/refactor deben indicar el PoC; ci/chore/docs pueden usar un scope libre u omitirlo
+            const poc = 'PoC-\\d{2}(\\/CWE-\\d+)?'
+            const pattern = new RegExp(
+              `^((fix|test|refactor)\\(${poc}\\)|(ci|chore|docs)(\\((${poc}|[a-z-]+)\\))?): \\S.{9,}$`
+            )
+            if (pattern.test(title)) {
+              console.log(`✅ Título válido: "${title}"`)
+              return
+            }
+            core.setFailed([
+              `❌ Título inválido: "${title}"`,
+              '',
+              'Formato esperado:  <tipo>(PoC-NN): <descripción de al menos 10 caracteres>',
+              '  - fix, test, refactor  → el scope PoC-NN es obligatorio (opcional: PoC-NN/CWE-XX)',
+              '  - ci, chore, docs      → scope opcional',
+              '',
+              'Ejemplos:',
+              '  fix(PoC-03): parametrizar consulta de login para evitar SQLi',
+              '  fix(PoC-07/CWE-285): validar rol en backend para /administration',
+              '  test(PoC-03): agregar prueba de regresión para inyección en login',
+              '  docs: actualizar informe de la fase 1'
+            ].join('\n'))
