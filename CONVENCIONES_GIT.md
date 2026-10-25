@@ -41,7 +41,7 @@ git pull
 git checkout -b fix/PoC-USR-03-login-parametrizado
 ```
 
-La rama se borra después del merge.
+La rama **no se borra** después del merge: se conserva como evidencia de trazabilidad para la revisión del proyecto.
 
 ---
 
@@ -157,7 +157,7 @@ de Sequelize), de modo que la entrada del usuario nunca se interpreta como SQL.
 1. Al abrir el PR corren los checks automáticos: `pr-title` y `lint`. Si alguno sale ❌, se corrige y se vuelve a hacer push a la misma rama.
 2. **Se requiere 1 aprobación**, idealmente de alguien de otro módulo. El revisor repite la PoC y una variante para confirmar que el arreglo ataca la causa raíz.
 3. El merge se hace con **Squash and merge**: el título del PR queda como un único commit en `master`, cuyo ID se cita en el reporte.
-4. Borrar la rama después del merge.
+4. **No borrar la rama** después del merge (GitHub ofrece un botón *Delete branch*; no usarlo).
 
 ---
 
