@@ -41,8 +41,6 @@ git pull
 git checkout -b fix/PoC-USR-03-login-parametrizado
 ```
 
-La rama **no se borra** después del merge: se conserva como evidencia de trazabilidad para la revisión del proyecto.
-
 ---
 
 ## 3. Tipos de cambio
@@ -56,8 +54,6 @@ La rama **no se borra** después del merge: se conserva como evidencia de trazab
 | `ci` | Cambios en los workflows de GitHub Actions | No |
 | `chore` | Mantenimiento (configuración, dependencias, `.gitignore`) | No |
 
-Si un mismo cambio arregla código y agrega documentación, se usa el tipo del cambio más importante (`fix`).
-
 ---
 
 ## 4. Título del Pull Request
@@ -67,7 +63,7 @@ Si un mismo cambio arregla código y agrega documentación, se usa el tipo del c
 ```
 
 - Descripción en **imperativo** y en minúscula: *parametrizar*, *validar*, *sanitizar* (no *parametricé* ni *se parametrizó*).
-- Mínimo 10 caracteres, sin punto final.
+- La descripción debe tener **mínimo 10 caracteres**.
 - Un check automático (`pr-title`) rechaza el PR si el título no cumple el formato.
 
 | Título | ¿Válido? |
@@ -78,6 +74,7 @@ Si un mismo cambio arregla código y agrega documentación, se usa el tipo del c
 | `docs: agregar matriz de riesgos actualizada` | ✅ |
 | `fix: arreglar login` | ❌ falta el PoC |
 | `fix(PoC-03): arreglar login` | ❌ falta el módulo |
+| `fix(PoC-USR-03): login` | ❌ descripción de menos de 10 caracteres |
 | `Arreglé el login` | ❌ sin tipo ni PoC |
 
 ---
@@ -102,9 +99,6 @@ git commit -m "fix(PoC-USR-03): parametrizar consulta del login"
 git push -u proyecto fix/PoC-USR-03-login-parametrizado
 ```
 
-> Cada integrante hace commit **con su propia cuenta**. Verificar que `git config user.email`
-> coincida con el correo de GitHub; si no, el commit no aparece a su nombre.
-
 ---
 
 ## 6. Cuerpo del Pull Request
@@ -127,9 +121,6 @@ Sus secciones siguen el mismo orden que el *Reporte Técnico de Parches*.
 ### 3. Cambio aplicado
 Qué se corrigió y por qué ataca la causa raíz y no solo el síntoma.
 ```
-
-> La verificación de no-reincidencia, las evidencias y el riesgo residual se documentan
-> en el *Reporte Técnico de Parches*, no en el PR.
 
 ### Ejemplo lleno
 
@@ -156,14 +147,3 @@ de Sequelize), de modo que la entrada del usuario nunca se interpreta como SQL.
 
 1. Al abrir el PR corren los checks automáticos: `pr-title` y `lint`. Si alguno sale ❌, se corrige y se vuelve a hacer push a la misma rama.
 2. **Se requiere 1 aprobación**, idealmente de alguien de otro módulo. El revisor repite la PoC y una variante para confirmar que el arreglo ataca la causa raíz.
-3. El merge se hace con **Squash and merge**: el título del PR queda como un único commit en `master`, cuyo ID se cita en el reporte.
-4. **No borrar la rama** después del merge (GitHub ofrece un botón *Delete branch*; no usarlo).
-
----
-
-## 8. Archivos compartidos
-
-Algunos arreglos tocan archivos que usan todos los módulos (`server.ts`, `lib/insecurity.ts`).
-Antes de modificarlos, avisar al equipo para no generar conflictos. Los cambios globales
-(CSP, cookies `HttpOnly`/`SameSite`, headers de seguridad) los hace **una sola persona**
-en su propio PR.
