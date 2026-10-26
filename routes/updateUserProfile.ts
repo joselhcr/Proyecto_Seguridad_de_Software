@@ -12,8 +12,23 @@ import { UserModel } from '../models/user'
 import * as utils from '../lib/utils'
 import config from 'config'
 
+/* The browser always sends Origin (or Referer) with a form POST, and a third-party page cannot forge it */
+function isSameOrigin (req: Request) {
+  const source = req.headers.origin ?? req.headers.referer
+  try {
+    return source !== undefined && new URL(source).host === req.headers.host
+  } catch {
+    return false
+  }
+}
+
 export function updateUserProfile () {
   return async (req: Request, res: Response, next: NextFunction) => {
+    if (!isSameOrigin(req)) {
+      res.status(403).json({ error: 'Cross-origin request blocked' })
+      return
+    }
+
     const loggedInUser = security.authenticatedUsers.get(req.cookies.token)
 
     if (!loggedInUser) {
