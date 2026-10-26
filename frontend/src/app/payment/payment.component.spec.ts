@@ -352,7 +352,7 @@ describe('PaymentComponent', () => {
         const setItemSpy = vi.spyOn(Storage.prototype, 'setItem')
         component.choosePayment()
         expect(setItemSpy).toHaveBeenCalledWith('token', 'tokenValue')
-        expect(cookieService.put).toHaveBeenCalledWith('token', 'tokenValue')
+        expect(cookieService.put).toHaveBeenCalledWith('token', 'tokenValue', { sameSite: 'lax' })
     })
 
     describe('template rendering', () => {
