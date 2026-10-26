@@ -71,3 +71,7 @@ config/*.yml
 # Misc
 .playwright-mcp/
 cypress/screenshots/
+
+# JWT signing key (PoC-AUT-02): never commit it
+.env
+encryptionkeys/jwt.key
