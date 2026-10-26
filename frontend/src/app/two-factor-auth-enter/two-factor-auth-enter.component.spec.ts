@@ -101,11 +101,11 @@ describe('TwoFactorAuthEnterComponent', () => {
         expect(component).toBeTruthy()
     })
 
-    it('should store authentication token in cookie', () => {
+    it('should not write the authentication token into a JavaScript-readable cookie', () => {
         twoFactorAuthService.verify.mockReturnValue(of({ token: 'TOKEN' }))
         component.verify()
 
-        expect(cookieService.get('token')).toBe('TOKEN')
+        expect(cookieService.get('token')).toBeUndefined()
     })
 
     it('should store authentication token in local storage', () => {

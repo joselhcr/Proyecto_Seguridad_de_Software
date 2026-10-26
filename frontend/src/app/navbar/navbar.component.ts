@@ -241,7 +241,8 @@ export class NavbarComponent implements OnInit {
   logout () {
     this.userService.saveLastLoginIp().subscribe({ next: () => { this.noop() }, error: (err) => { console.log(err) } })
     localStorage.removeItem('token')
-    this.cookieService.remove('token')
+    /* JavaScript cannot delete an HttpOnly cookie, so the server clears it */
+    this.userService.logout().subscribe({ next: () => { this.noop() }, error: (err) => { console.log(err) } })
     sessionStorage.removeItem('bid')
     sessionStorage.removeItem('itemTotal')
     sessionStorage.removeItem('guestBasket')
