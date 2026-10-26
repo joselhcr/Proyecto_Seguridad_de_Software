@@ -89,7 +89,7 @@ import { performRedirect } from './routes/redirect'
 import { serveEasterEgg } from './routes/easterEgg'
 import { getLanguageList } from './routes/languages'
 import { getUserProfile } from './routes/userProfile'
-import { serveAngularClient } from './routes/angular'
+import { serveAngularClient, setContentSecurityPolicy } from './routes/angular'
 import { resetPassword } from './routes/resetPassword'
 import { serveLogFiles } from './routes/logfileServer'
 import { servePublicFiles } from './routes/fileServer'
@@ -304,7 +304,7 @@ function configureApp (app: ReturnType<typeof express>, seq: typeof sequelize) {
   /* Swagger documentation for B2B v2 endpoints */
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument))
 
-  app.use(express.static(path.resolve('frontend/dist/frontend')))
+  app.use(express.static(path.resolve('frontend/dist/frontend'), { setHeaders: setContentSecurityPolicy }))
   app.use(cookieParser('kekse'))
   // vuln-code-snippet end directoryListingChallenge accessLogDisclosureChallenge
 
