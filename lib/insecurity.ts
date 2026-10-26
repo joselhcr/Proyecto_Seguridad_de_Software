@@ -140,6 +140,18 @@ export const isRedirectAllowed = (url: string) => {
 }
 // vuln-code-snippet end redirectCryptoCurrencyChallenge redirectChallenge
 
+/* The session cookie is set only by the server and is never readable from JavaScript, so an XSS cannot steal it through document.cookie */
+export const sessionCookieOptions = {
+  httpOnly: true,
+  sameSite: 'lax' as const,
+  secure: process.env.NODE_ENV === 'production',
+  maxAge: 6 * 60 * 60 * 1000
+}
+
+export const setSessionCookie = (res: Response, token: string) => res.cookie('token', token, sessionCookieOptions)
+
+export const clearSessionCookie = (res: Response) => res.clearCookie('token', { httpOnly: true, sameSite: 'lax', secure: sessionCookieOptions.secure })
+
 export const roles = {
   customer: 'customer',
   deluxe: 'deluxe',
@@ -214,7 +226,7 @@ export const updateAuthenticatedUsers = () => (req: Request, res: Response, next
     jwt.verify(token, publicKey, (err: Error | null, decoded: any) => {
       if (err === null && decoded?.data !== undefined) {
         authenticatedUsers.put(token, decoded)
-        res.cookie('token', token, { sameSite: 'lax' })
+        setSessionCookie(res, token)
       }
     })
   }

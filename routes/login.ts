@@ -23,6 +23,7 @@ export function login () {
         const authenticatedUser = { data: user, bid: basket.id } // keep track of original basket
         const token = security.authorize(authenticatedUser)
         security.authenticatedUsers.put(token, authenticatedUser)
+        security.setSessionCookie(res, token)
         res.json({ authentication: { token, bid: basket.id, umail: user.email } })
       }).catch((error: Error) => {
         next(error)
