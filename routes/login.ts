@@ -4,6 +4,7 @@
  */
 import { type Request, type Response, type NextFunction } from 'express'
 import config from 'config'
+import crypto from 'node:crypto'
 
 import * as challengeUtils from '../lib/challengeUtils'
 import { challenges, users } from '../data/datacache'
@@ -13,6 +14,7 @@ import { UserModel } from '../models/user'
 import * as models from '../models/index'
 import { type User } from '../data/types'
 import * as utils from '../lib/utils'
+import { logAuthEvent } from '../lib/authAudit'
 
 // vuln-code-snippet start loginAdminChallenge loginBenderChallenge loginJimChallenge
 export function login () {
@@ -31,6 +33,9 @@ export function login () {
 
   return (req: Request, res: Response, next: NextFunction) => {
     verifyPreLoginChallenges(req) // vuln-code-snippet hide-line
+    /* The request id links the HTTP access log, the auth audit log and the response for later tracing */
+    const requestId = crypto.randomUUID()
+    res.setHeader('X-Request-Id', requestId)
     /* Bind parameters keep the user input as data, so it can never change the structure of the query */
     models.sequelize.query('SELECT * FROM Users WHERE email = $email AND password = $password AND deletedAt IS NULL', { // vuln-code-snippet vuln-line loginAdminChallenge loginBenderChallenge loginJimChallenge
       bind: { email: String(req.body.email ?? ''), password: security.hash(req.body.password || '') },
@@ -40,6 +45,7 @@ export function login () {
       .then((authenticatedUser) => { // vuln-code-snippet neutral-line loginAdminChallenge loginBenderChallenge loginJimChallenge
         const user = utils.queryResultToJson(authenticatedUser)
         if (user.data?.id && user.data.totpSecret !== '') {
+          logAuthEvent(req, 'login_attempt', true, { email: req.body.email, userId: user.data.id, reason: 'totp_required', requestId })
           res.status(401).json({
             status: 'totp_token_required',
             data: {
@@ -50,11 +56,14 @@ export function login () {
             }
           })
         } else if (user.data?.id) {
+          logAuthEvent(req, 'login_attempt', true, { email: req.body.email, userId: user.data.id, requestId })
           afterLogin(user.data, res, next)
         } else {
+          logAuthEvent(req, 'login_attempt', false, { email: req.body.email, reason: 'invalid_credentials', requestId })
           res.status(401).send(res.__('Invalid email or password.'))
         }
       }).catch((error: Error) => {
+        logAuthEvent(req, 'login_attempt', false, { email: req.body.email, reason: 'error', requestId })
         next(error)
       })
   }

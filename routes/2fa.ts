@@ -12,9 +12,13 @@ import * as utils from '../lib/utils'
 import { challenges } from '../data/datacache'
 import { generateSecret, verifySync } from 'otplib'
 import * as security from '../lib/insecurity'
+import { logAuthEvent } from '../lib/authAudit'
+import crypto from 'node:crypto'
 
 export async function verify (req: Request, res: Response) {
   const { tmpToken, totpToken } = req.body
+  const requestId = crypto.randomUUID()
+  res.setHeader('X-Request-Id', requestId)
 
   try {
     const { userId, type } = security.verify(tmpToken) && security.decode(tmpToken)
@@ -33,8 +37,10 @@ export async function verify (req: Request, res: Response) {
     const plainUser = utils.queryResultToJson(user)
 
     if (!isValid) {
+      logAuthEvent(req, 'login_2fa_attempt', false, { email: user.email, userId: user.id, reason: 'invalid_totp', requestId })
       return res.status(401).send()
     }
+    logAuthEvent(req, 'login_2fa_attempt', true, { email: user.email, userId: user.id, requestId })
     challengeUtils.solveIf(challenges.twoFactorAuthUnsafeSecretStorageChallenge, () => { return user.email === 'wurstbrot@' + config.get<string>('application.domain') })
 
     const [basket] = await BasketModel.findOrCreate({ where: { UserId: userId } })
@@ -46,6 +52,7 @@ export async function verify (req: Request, res: Response) {
 
     res.json({ authentication: { token, bid: basket.id, umail: user.email } })
   } catch (error) {
+    logAuthEvent(req, 'login_2fa_attempt', false, { reason: 'invalid_tmp_token', requestId })
     res.status(401).send()
   }
 }
