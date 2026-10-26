@@ -488,8 +488,9 @@ function configureApp (app: ReturnType<typeof express>, seq: typeof sequelize) {
   // vuln-code-snippet end changeProductChallenge
 
   /* Verify the 2FA Token */
+  /* A 6-digit code only survives brute force with very few attempts per window, counted per real connection address */
   app.post('/rest/2fa/verify',
-    rateLimit({ windowMs: 5 * 60 * 1000, max: 100, validate: false }),
+    rateLimit({ windowMs: 15 * 60 * 1000, max: 5, validate: false, keyGenerator ({ socket }: Request) { return socket.remoteAddress ?? 'unknown' } }),
     utils.asyncHandler(twoFactorAuth.verify)
   )
   /* Check 2FA Status for the current User */
