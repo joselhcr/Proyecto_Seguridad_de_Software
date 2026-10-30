@@ -5,6 +5,7 @@
 
 import { type Request, type Response, type NextFunction } from 'express'
 import { AddressModel } from '../models/address'
+import { auditLog } from '../lib/auditLog'
 
 export function getAddress () {
   return async (req: Request, res: Response) => {
@@ -30,6 +31,7 @@ export function checkAddressOwnership () {
     if (address != null) {
       next()
     } else {
+      auditLog('address_access_denied', req, { userId: req.body.UserId, addressId: req.params.id }, 'warn')
       res.status(403).json({ status: 'error', data: 'Malicious activity detected.' })
     }
   }

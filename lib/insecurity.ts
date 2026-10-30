@@ -13,6 +13,7 @@ import jws from 'jws'
 import sanitizeHtmlLib from 'sanitize-html'
 import sanitizeFilenameLib from 'sanitize-filename'
 import * as utils from './utils'
+import { auditLog } from './auditLog'
 
 // @ts-expect-error FIXME no typescript definitions for z85 :(
 import * as z85 from 'z85'
@@ -168,6 +169,7 @@ export const isAdmin = () => {
     if (decodedToken?.data?.role === roles.admin) {
       next()
     } else {
+      auditLog('admin_access_denied', req, { userId: decodedToken?.data?.id, role: decodedToken?.data?.role }, 'warn')
       res.status(403).json({ error: 'Malicious activity detected' })
     }
   }
@@ -189,6 +191,7 @@ export const isSelfOrAdmin = () => {
     if (decodedToken?.data?.role === roles.admin || String(decodedToken?.data?.id) === req.params.id) {
       next()
     } else {
+      auditLog('user_access_denied', req, { userId: decodedToken?.data?.id, requestedUserId: req.params.id }, 'warn')
       res.status(403).json({ error: 'Malicious activity detected' })
     }
   }
