@@ -379,7 +379,7 @@ function configureApp (app: ReturnType<typeof express>, seq: typeof sequelize) {
   /* Feedbacks: GET allowed for feedback carousel, POST allowed in order to provide feedback without being logged in */
   app.use('/api/Feedbacks/:id', security.isAuthorized())
   /* Users: Only POST is allowed in order to register a new user */
-  app.get('/api/Users', security.isAuthorized())
+  app.get('/api/Users', security.isAuthorized(), security.isAdmin())
   app.route('/api/Users/:id')
     .get(security.isAuthorized())
     .put(security.denyAll())
@@ -414,7 +414,7 @@ function configureApp (app: ReturnType<typeof express>, seq: typeof sequelize) {
   app.get('/api/SecurityAnswers', security.denyAll())
   app.use('/api/SecurityAnswers/:id', security.denyAll())
   /* REST API */
-  app.use('/rest/user/authentication-details', security.isAuthorized())
+  app.use('/rest/user/authentication-details', security.isAuthorized(), security.isAdmin())
   app.use('/rest/basket/:id', security.isAuthorized())
   app.use('/rest/basket/:id/order', security.isAuthorized())
   /* Challenge evaluation before finale takes over */ // vuln-code-snippet hide-start
@@ -434,6 +434,13 @@ function configureApp (app: ReturnType<typeof express>, seq: typeof sequelize) {
         res.status(400).send(res.__('Invalid email/password cannot be empty'))
       }
     }
+    /* Only accept the registration form fields; the role is always assigned by the server */
+    const { email, password, passwordRepeat, securityQuestion, securityAnswer, ...disallowedFields } = req.body
+    if (Object.keys(disallowedFields).length > 0) {
+      /* JSON.stringify escapes line breaks so attacker-controlled values cannot forge log entries */
+      logger.warn(`Registration with disallowed fields ${JSON.stringify(Object.keys(disallowedFields))} for email ${JSON.stringify(email)} from ${req.socket.remoteAddress}`)
+    }
+    req.body = { email, password, passwordRepeat, role: security.roles.customer }
     next()
   })
   app.post('/api/Users', verify.registerAdminChallenge())
