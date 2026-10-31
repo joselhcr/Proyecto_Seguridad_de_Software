@@ -51,6 +51,7 @@ import { PrivacyRequestModel } from './models/privacyRequests'
 import { SecurityQuestionModel } from './models/securityQuestion'
 
 import logger from './lib/logger'
+import { auditLog } from './lib/auditLog'
 import * as utils from './lib/utils'
 import * as antiCheat from './lib/antiCheat'
 import * as security from './lib/insecurity'
@@ -437,8 +438,7 @@ function configureApp (app: ReturnType<typeof express>, seq: typeof sequelize) {
     /* Only accept the registration form fields; the role is always assigned by the server */
     const { email, password, passwordRepeat, securityQuestion, securityAnswer, ...disallowedFields } = req.body
     if (Object.keys(disallowedFields).length > 0) {
-      /* JSON.stringify escapes line breaks so attacker-controlled values cannot forge log entries */
-      logger.warn(`Registration with disallowed fields ${JSON.stringify(Object.keys(disallowedFields))} for email ${JSON.stringify(email)} from ${req.socket.remoteAddress}`)
+      auditLog('registration_disallowed_fields', req, { email, fields: Object.keys(disallowedFields).join(',') }, 'warn')
     }
     req.body = { email, password, passwordRepeat, role: security.roles.customer }
     next()

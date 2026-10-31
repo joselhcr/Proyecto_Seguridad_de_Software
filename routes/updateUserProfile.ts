@@ -10,6 +10,7 @@ import { challenges } from '../data/datacache'
 import * as security from '../lib/insecurity'
 import { UserModel } from '../models/user'
 import * as utils from '../lib/utils'
+import { auditLog } from '../lib/auditLog'
 import config from 'config'
 
 /* The browser always sends Origin (or Referer) with a form POST, and a third-party page cannot forge it */
@@ -25,6 +26,7 @@ function isSameOrigin (req: Request) {
 export function updateUserProfile () {
   return async (req: Request, res: Response, next: NextFunction) => {
     if (!isSameOrigin(req)) {
+      auditLog('cross_origin_profile_update_blocked', req, { origin: req.headers.origin, referer: req.headers.referer }, 'warn')
       res.status(403).json({ error: 'Cross-origin request blocked' })
       return
     }
