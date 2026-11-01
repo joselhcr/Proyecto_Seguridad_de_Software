@@ -4,13 +4,13 @@
  */
 import { type Request, type Response, type NextFunction } from 'express'
 import config from 'config'
+import crypto from 'node:crypto'
 
 import * as challengeUtils from '../lib/challengeUtils'
 import { challenges, users } from '../data/datacache'
 import { BasketModel } from '../models/basket'
 import * as security from '../lib/insecurity'
 import { UserModel } from '../models/user'
-import * as models from '../models/index'
 import { type User } from '../data/types'
 import * as utils from '../lib/utils'
 
@@ -31,13 +31,17 @@ export function login () {
 
   return (req: Request, res: Response, next: NextFunction) => {
     verifyPreLoginChallenges(req) // vuln-code-snippet hide-line
-    /* Bind parameters keep the user input as data, so it can never change the structure of the query */
-    models.sequelize.query('SELECT * FROM Users WHERE email = $email AND password = $password AND deletedAt IS NULL', { // vuln-code-snippet vuln-line loginAdminChallenge loginBenderChallenge loginJimChallenge
-      bind: { email: String(req.body.email ?? ''), password: security.hash(req.body.password || '') },
-      model: UserModel,
-      plain: true
-    })
-      .then((authenticatedUser) => { // vuln-code-snippet neutral-line loginAdminChallenge loginBenderChallenge loginJimChallenge
+    const { email, password } = req.body
+    /* Only plain strings are accepted, so objects or arrays can never reach the ORM as operators */
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      res.status(401).send(res.__('Invalid email or password.'))
+      return
+    }
+    /* The ORM sends the email as a bound parameter and the paranoid model already excludes deleted users */
+    UserModel.findOne({ where: { email } }) // vuln-code-snippet vuln-line loginAdminChallenge loginBenderChallenge loginJimChallenge
+      .then((foundUser) => { // vuln-code-snippet neutral-line loginAdminChallenge loginBenderChallenge loginJimChallenge
+        /* The password is checked in code instead of inside the query, with a constant-time comparison */
+        const authenticatedUser = foundUser !== null && passwordMatches(password, foundUser.password) ? foundUser : null
         const user = utils.queryResultToJson(authenticatedUser)
         if (user.data?.id && user.data.totpSecret !== '') {
           res.status(401).json({
@@ -59,6 +63,12 @@ export function login () {
       })
   }
   // vuln-code-snippet end loginAdminChallenge loginBenderChallenge loginJimChallenge
+
+  function passwordMatches (password: string, storedHash: string) {
+    const given = Buffer.from(security.hash(password))
+    const stored = Buffer.from(storedHash ?? '')
+    return given.length === stored.length && crypto.timingSafeEqual(given, stored)
+  }
 
   function verifyPreLoginChallenges (req: Request) {
     challengeUtils.solveIf(challenges.weakPasswordChallenge, () => { return req.body.email === 'admin@' + config.get<string>('application.domain') && req.body.password === 'admin123' })
