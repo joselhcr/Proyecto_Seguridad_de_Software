@@ -361,10 +361,17 @@ function configureApp (app: ReturnType<typeof express>, seq: typeof sequelize) {
   // vuln-code-snippet start resetPasswordMortyChallenge
   /* Rate limiting */
   app.enable('trust proxy')
+  /* The key is the TCP address of the connection, which the client cannot change with headers like X-Forwarded-For */
   app.use('/rest/user/reset-password', rateLimit({
-    windowMs: 5 * 60 * 1000,
-    max: 100,
-    keyGenerator ({ headers, ip }: { headers: any, ip: any }) { return headers['X-Forwarded-For'] ?? ip } // vuln-code-snippet vuln-line resetPasswordMortyChallenge
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    keyGenerator ({ socket }: Request) { return socket.remoteAddress ?? 'unknown' } // vuln-code-snippet vuln-line resetPasswordMortyChallenge
+  }))
+  /* A second limit per account stops the brute force even if the attacker rotates real IP addresses */
+  app.use('/rest/user/reset-password', rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 5,
+    keyGenerator ({ body }: Request) { return 'email:' + String(body?.email ?? '').trim().toLowerCase() }
   }))
   // vuln-code-snippet end resetPasswordMortyChallenge
 
@@ -482,8 +489,9 @@ function configureApp (app: ReturnType<typeof express>, seq: typeof sequelize) {
   // vuln-code-snippet end changeProductChallenge
 
   /* Verify the 2FA Token */
+  /* A 6-digit code only survives brute force with very few attempts per window, counted per real connection address */
   app.post('/rest/2fa/verify',
-    rateLimit({ windowMs: 5 * 60 * 1000, max: 100, validate: false }),
+    rateLimit({ windowMs: 15 * 60 * 1000, max: 5, validate: false, keyGenerator ({ socket }: Request) { return socket.remoteAddress ?? 'unknown' } }),
     utils.asyncHandler(twoFactorAuth.verify)
   )
   /* Check 2FA Status for the current User */
