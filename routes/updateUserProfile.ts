@@ -56,7 +56,7 @@ export function updateUserProfile () {
       const userWithStatus = utils.queryResultToJson(savedUser)
       const updatedToken = security.authorize(userWithStatus)
       security.authenticatedUsers.put(updatedToken, userWithStatus)
-      res.cookie('token', updatedToken, { sameSite: 'lax' })
+      security.setSessionCookie(res, updatedToken)
       res.location(process.env.BASE_PATH + '/profile')
       res.redirect(process.env.BASE_PATH + '/profile')
     } catch (error) {
