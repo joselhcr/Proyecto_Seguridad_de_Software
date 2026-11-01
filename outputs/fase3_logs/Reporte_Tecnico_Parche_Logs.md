@@ -61,7 +61,7 @@ Las pruebas de API verifican denegación de listado/descarga a anónimos y clien
 
 ## Trazabilidad Git
 
-**Commit:** consultar el historial local de la rama para el hash y el DCO.
+**Commit de implementación:** `4d3268949122e91d21e9b1ead87bbcee5f5ca947` (firmado con DCO).
 
-**Pull Request de LOG-01/05/06:** pendiente de preparar/publicar tras revisar la salida de CI de esta rama.
+**Pull Request de LOG-01/05/06:** [PR #15](https://github.com/joselhcr/Proyecto_Seguridad_de_Software/pull/15), abierto como borrador contra `master`. Consultar allí el estado vigente de CI y las revisiones antes de solicitar merge.
 **Diff final:** disponible con `git show --stat --oneline HEAD` y `git show --format=fuller HEAD`.
