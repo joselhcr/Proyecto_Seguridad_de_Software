@@ -13,6 +13,7 @@ import * as security from '../lib/insecurity'
 import { UserModel } from '../models/user'
 import { type User } from '../data/types'
 import * as utils from '../lib/utils'
+import { logAuthEvent } from '../lib/authAudit'
 
 // vuln-code-snippet start loginAdminChallenge loginBenderChallenge loginJimChallenge
 export function login () {
@@ -32,9 +33,13 @@ export function login () {
 
   return (req: Request, res: Response, next: NextFunction) => {
     verifyPreLoginChallenges(req) // vuln-code-snippet hide-line
+    /* The request id links the HTTP access log, the auth audit log and the response for later tracing */
+    const requestId = crypto.randomUUID()
+    res.setHeader('X-Request-Id', requestId)
     const { email, password } = req.body
     /* Only plain strings are accepted, so objects or arrays can never reach the ORM as operators */
     if (typeof email !== 'string' || typeof password !== 'string') {
+      logAuthEvent(req, 'login_attempt', false, { email, reason: 'invalid_input', requestId })
       res.status(401).send(res.__('Invalid email or password.'))
       return
     }
@@ -45,6 +50,7 @@ export function login () {
         const authenticatedUser = foundUser !== null && passwordMatches(password, foundUser.password) ? foundUser : null
         const user = utils.queryResultToJson(authenticatedUser)
         if (user.data?.id && user.data.totpSecret !== '') {
+          logAuthEvent(req, 'login_attempt', true, { email: req.body.email, userId: user.data.id, reason: 'totp_required', requestId })
           res.status(401).json({
             status: 'totp_token_required',
             data: {
@@ -55,11 +61,14 @@ export function login () {
             }
           })
         } else if (user.data?.id) {
+          logAuthEvent(req, 'login_attempt', true, { email: req.body.email, userId: user.data.id, requestId })
           afterLogin(user.data, res, next)
         } else {
+          logAuthEvent(req, 'login_attempt', false, { email: req.body.email, reason: 'invalid_credentials', requestId })
           res.status(401).send(res.__('Invalid email or password.'))
         }
       }).catch((error: Error) => {
+        logAuthEvent(req, 'login_attempt', false, { email: req.body.email, reason: 'error', requestId })
         next(error)
       })
   }

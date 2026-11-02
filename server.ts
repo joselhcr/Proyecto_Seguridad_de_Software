@@ -360,7 +360,8 @@ function configureApp (app: ReturnType<typeof express>, seq: typeof sequelize) {
 
   // vuln-code-snippet start resetPasswordMortyChallenge
   /* Rate limiting */
-  app.enable('trust proxy')
+  /* X-Forwarded-For is only trusted when a real proxy is declared in TRUSTED_PROXY (e.g. "loopback" or its IP); otherwise req.ip and Morgan use the TCP address */
+  app.set('trust proxy', process.env.TRUSTED_PROXY ?? false)
   /* The key is the TCP address of the connection, which the client cannot change with headers like X-Forwarded-For */
   app.use('/rest/user/reset-password', rateLimit({
     windowMs: 15 * 60 * 1000,
