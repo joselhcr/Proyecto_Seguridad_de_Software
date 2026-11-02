@@ -11,6 +11,8 @@ import {
   type CreationOptional,
   type Sequelize
 } from 'sequelize'
+import { decryptCardNumber, encryptCardNumber, maskCardNumber } from '../lib/cardEncryption'
+
 class Card extends Model<
 InferAttributes<Card>,
 InferCreationAttributes<Card>
@@ -18,9 +20,14 @@ InferCreationAttributes<Card>
   declare UserId: number
   declare id: CreationOptional<number>
   declare fullName: string
-  declare cardNum: number
+  declare cardNum: string
   declare expMonth: number
   declare expYear: number
+
+  /* Any automatic API response only ever gets the masked number */
+  toJSON () {
+    return { ...this.get({ plain: true }), cardNum: maskCardNumber(this.cardNum) }
+  }
 }
 
 const CardModelInit = (sequelize: Sequelize) => {
@@ -35,12 +42,23 @@ const CardModelInit = (sequelize: Sequelize) => {
         autoIncrement: true
       },
       fullName: DataTypes.STRING,
+      /* Only the encrypted value reaches the database, so the validation decrypts it to check the number */
       cardNum: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.STRING,
+        set (cardNum: string | number) {
+          this.setDataValue('cardNum', encryptCardNumber(String(cardNum)))
+        },
+        get () {
+          const storedValue = this.getDataValue('cardNum')
+          return storedValue ? decryptCardNumber(storedValue) : storedValue
+        },
         validate: {
-          isInt: true,
-          min: 1000000000000000,
-          max: 9999999999999998
+          isValidCardNumber (storedValue: string) {
+            const cardNumber = Number(decryptCardNumber(storedValue))
+            if (!Number.isInteger(cardNumber) || cardNumber < 1000000000000000 || cardNumber > 9999999999999998) {
+              throw new Error('Invalid card number')
+            }
+          }
         }
       },
       expMonth: {
