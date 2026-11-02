@@ -7,14 +7,12 @@ import { describe, it, before } from 'node:test'
 import assert from 'node:assert/strict'
 import request from 'supertest'
 import type { Express } from 'express'
-import * as security from '../../lib/insecurity'
 import config from 'config'
 import { createTestApp } from './helpers/setup'
 import type { Product as ProductConfig } from '../../lib/config.schema'
 import * as utils from '../../lib/utils'
 
 let app: Express
-const adminAuth = `Bearer ${security.authorize({ data: { role: security.roles.admin } })}`
 
 let blueprint: string
 
@@ -206,7 +204,6 @@ void describe('Hidden URL', () => {
   void it('GET folder containing access log files for "Access Log" challenge', async () => {
     const res = await request(app)
       .get('/support/logs/access.log.' + utils.toISO8601(new Date()))
-      .set('Authorization', adminAuth)
     assert.equal(res.status, 200)
     assert.ok(res.headers['content-type']?.includes('application/octet-stream'))
   })
