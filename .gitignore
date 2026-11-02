@@ -75,3 +75,6 @@ cypress/screenshots/
 # JWT signing key (PoC-AUT-02): never commit it
 .env
 encryptionkeys/jwt.key
+
+# Local Logs/Auditoría report (kept outside the PR)
+/outputs/fase3_logs/Reporte_Tecnico_Parche_Logs.md

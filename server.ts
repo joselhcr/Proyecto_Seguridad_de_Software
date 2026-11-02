@@ -12,6 +12,7 @@ import multer from 'multer'
 import helmet from 'helmet'
 import http from 'node:http'
 import path from 'node:path'
+import crypto from 'node:crypto'
 import express from 'express'
 import colors from 'colors/safe'
 import serveIndex from 'serve-index'
@@ -52,6 +53,7 @@ import { SecurityQuestionModel } from './models/securityQuestion'
 
 import logger from './lib/logger'
 import { auditLog } from './lib/auditLog'
+import { productionErrorHandler } from './lib/productionErrorHandler'
 import * as utils from './lib/utils'
 import * as antiCheat from './lib/antiCheat'
 import * as security from './lib/insecurity'
@@ -133,7 +135,6 @@ const app = express()
 const server = new http.Server(app)
 
 // errorhandler requires us from overwriting a string property on it's module which is a big no-no with esmodules :/
-
 const errorhandler = require('errorhandler')
 
 const startTime = Date.now()
@@ -206,6 +207,23 @@ function configureApp (app: ReturnType<typeof express>, seq: typeof sequelize) {
     req.url = req.url.replace(/[/]+/g, '/')
     next()
   })
+
+  app.use((_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('X-Request-Id', crypto.randomUUID())
+    next()
+  })
+
+  /* Log every request, including routes that may end the response early. */
+  const accessLogStream = getStream({
+    filename: path.resolve('logs/access.log.%DATE%'),
+    date_format: 'YYYY-MM-DD',
+    audit_file: 'logs/audit.json',
+    frequency: 'daily',
+    verbose: false,
+    max_logs: '2d'
+  })
+  morgan.token('request-id', (_req, res) => String(res.getHeader('X-Request-Id') ?? '-'))
+  app.use(morgan(':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent" :request-id', { stream: accessLogStream }))
 
   /* Increase request counter metric for every request */
   app.use(metrics.observeRequestMetricsMiddleware())
@@ -299,9 +317,11 @@ function configureApp (app: ReturnType<typeof express>, seq: typeof sequelize) {
   app.use('/encryptionkeys/:file', serveKeyFiles())
 
   /* /logs directory browsing */ // vuln-code-snippet neutral-line accessLogDisclosureChallenge
-  app.use('/support/logs', serveIndexMiddleware, serveIndex('logs', { icons: true, view: 'details' })) // vuln-code-snippet vuln-line accessLogDisclosureChallenge
+  app.use('/support/logs', security.isAuthorized(), security.isAdmin()) // vuln-code-snippet hide-line
   app.use('/support/logs', verify.accessControlChallenges()) // vuln-code-snippet hide-line
+  app.use('/support/logs', serveIndexMiddleware, serveIndex('logs', { icons: true, view: 'details' })) // vuln-code-snippet vuln-line accessLogDisclosureChallenge
   app.use('/support/logs/:file', serveLogFiles()) // vuln-code-snippet vuln-line accessLogDisclosureChallenge
+  app.use('/support/logs', productionErrorHandler)
 
   /* Swagger documentation for B2B v2 endpoints */
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument))
@@ -346,17 +366,6 @@ function configureApp (app: ReturnType<typeof express>, seq: typeof sequelize) {
     }
     next()
   })
-
-  /* HTTP request logging */
-  const accessLogStream = getStream({
-    filename: path.resolve('logs/access.log.%DATE%'),
-    date_format: 'YYYY-MM-DD',
-    audit_file: 'logs/audit.json',
-    frequency: 'daily',
-    verbose: false,
-    max_logs: '2d'
-  })
-  app.use(morgan('combined', { stream: accessLogStream }))
 
   // vuln-code-snippet start resetPasswordMortyChallenge
   /* Rate limiting */
@@ -716,7 +725,11 @@ function configureApp (app: ReturnType<typeof express>, seq: typeof sequelize) {
 
   /* Error Handling */
   app.use(verify.errorHandlingChallenge())
-  app.use(errorhandler())
+  if (process.env.NODE_ENV === 'production') {
+    app.use(productionErrorHandler)
+  } else {
+    app.use(errorhandler())
+  }
 }
 
 // Function called first to ensure that all the i18n files are reloaded successfully before other linked operations.
