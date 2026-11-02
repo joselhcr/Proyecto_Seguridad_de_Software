@@ -50,6 +50,7 @@ void describe('/api/Cards', () => {
       expYear: 2085
     })
     assert.equal(res.status, 201)
+    assert.equal(res.body.data.cardNum, '************4321')
   })
 
   void it('GET all cards returns masked card numbers', async () => {

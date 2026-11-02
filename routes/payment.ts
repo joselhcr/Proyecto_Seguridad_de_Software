@@ -5,6 +5,7 @@
 
 import { type Request, type Response, type NextFunction } from 'express'
 import { CardModel } from '../models/card'
+import { maskCardNumber } from '../lib/cardEncryption'
 
 interface displayCard {
   UserId: number
@@ -28,8 +29,7 @@ export function getPaymentMethods () {
         expMonth: card.expMonth,
         expYear: card.expYear
       }
-      const cardNumber = String(card.cardNum)
-      displayableCard.cardNum = '*'.repeat(12) + cardNumber.substring(cardNumber.length - 4)
+      displayableCard.cardNum = maskCardNumber(card.cardNum)
       displayableCards.push(displayableCard)
     })
     res.status(200).json({ status: 'success', data: displayableCards })
@@ -54,8 +54,7 @@ export function getPaymentMethodById () {
       displayableCard.expMonth = card.expMonth
       displayableCard.expYear = card.expYear
 
-      const cardNumber = String(card.cardNum)
-      displayableCard.cardNum = '*'.repeat(12) + cardNumber.substring(cardNumber.length - 4)
+      displayableCard.cardNum = maskCardNumber(card.cardNum)
     }
     if ((card != null) && displayableCard) {
       res.status(200).json({ status: 'success', data: displayableCard })
