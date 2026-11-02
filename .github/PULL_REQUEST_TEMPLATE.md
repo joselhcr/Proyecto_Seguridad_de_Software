@@ -1,5 +1,5 @@
 <!--
-Título:  <tipo>(PoC-<MÓDULO>-NN): <descripción>
+Título:  <tipo>(PoC-<MÓDULO>-NN): <descripción>  (o CTRL-<MÓDULO>-NN si es un control de la matriz sin PoC)
 Ejemplo: fix(PoC-USR-03): parametrizar consulta del login
 Rama:    fix/PoC-USR-03-descripcion-corta
 Guía completa: CONVENCIONES_GIT.md
@@ -8,7 +8,7 @@ Guía completa: CONVENCIONES_GIT.md
 ### 1. Ficha y trazabilidad
 - **Responsable:** @usuario
 - **Módulo:** <!-- Autenticación / Gestión de Usuarios / Operaciones / Logs -->
-- **PoC:** PoC-XXX-NN
+- **PoC / Control:** PoC-XXX-NN o CTRL-XXX-NN (fila de la matriz)
 
 ### 2. Mapeo de la vulnerabilidad
 - **OWASP Top 10:** <!-- ej. A03:2021 - Injection -->
