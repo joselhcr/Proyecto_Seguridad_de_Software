@@ -216,7 +216,8 @@ function configureApp (app: ReturnType<typeof express>, seq: typeof sequelize) {
     verbose: false,
     max_logs: '2d'
   })
-  app.use(morgan('combined', { stream: accessLogStream }))
+  morgan.token('request-id', (_req, res) => String(res.getHeader('X-Request-Id') ?? '-'))
+  app.use(morgan(':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent" :request-id', { stream: accessLogStream }))
 
   /* Increase request counter metric for every request */
   app.use(metrics.observeRequestMetricsMiddleware())
