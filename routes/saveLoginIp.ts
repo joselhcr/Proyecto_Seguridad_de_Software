@@ -28,8 +28,7 @@ export function saveLoginIp () {
           auditLog('login_ip_saved', req, { userId: loggedInUser.data.id, savedIp: lastLoginIp })
         }
         /* Never return the password hash or the 2FA secret */
-        const { password, totpSecret, ...safeUser } = updatedUser?.get({ plain: true }) ?? {}
-        res.json(safeUser)
+        res.json(security.withoutCredentials(updatedUser))
       } catch (error) {
         next(error)
       }

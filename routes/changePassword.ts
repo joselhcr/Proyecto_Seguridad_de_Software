@@ -4,13 +4,13 @@
  */
 
 import { type Request, type Response, type NextFunction } from 'express'
-import * as challengeUtils from '../lib/challengeUtils'
-import { challenges } from '../data/datacache'
 import { UserModel } from '../models/user'
 import * as security from '../lib/insecurity'
+import { auditLog } from '../lib/auditLog'
 
 export function changePassword () {
-  return async ({ query, headers, connection }: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const { query, headers, connection } = req
     const currentPassword = query.current as string
     const newPassword = query.new as string
     const newPasswordInString = newPassword?.toString()
@@ -36,11 +36,6 @@ export function changePassword () {
       return
     }
 
-    if (currentPassword && security.hash(currentPassword) !== loggedInUser.data.password) {
-      res.status(401).send(res.__('Current password is not correct.'))
-      return
-    }
-
     try {
       const user = await UserModel.findByPk(loggedInUser.data.id)
       if (!user) {
@@ -48,12 +43,15 @@ export function changePassword () {
         return
       }
 
+      /* The current password is always required and is compared with the stored hash, so a stolen session cannot change it */
+      if (typeof currentPassword !== 'string' || security.hash(currentPassword) !== user.password) {
+        auditLog('password_change_denied', req, { userId: user.id }, 'warn')
+        res.status(401).send(res.__('Current password is not correct.'))
+        return
+      }
+
       await user.update({ password: newPasswordInString })
-      challengeUtils.solveIf(
-        challenges.changePasswordBenderChallenge,
-        () => user.id === 3 && !currentPassword && user.password === security.hash('slurmCl4ssic')
-      )
-      res.json({ user })
+      res.json({ user: security.withoutCredentials(user) })
     } catch (error) {
       next(error)
     }
