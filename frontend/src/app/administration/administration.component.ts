@@ -10,7 +10,6 @@ import { FeedbackService } from '../Services/feedback.service'
 import { MatTableDataSource, MatTable, MatColumnDef, MatHeaderCellDef, MatHeaderCell, MatCellDef, MatCell, MatHeaderRowDef, MatHeaderRow, MatRowDef, MatRow } from '@angular/material/table'
 import { UserService } from '../Services/user.service'
 import { Component, type OnInit, ViewChild, inject, signal, ChangeDetectionStrategy } from '@angular/core'
-import { DomSanitizer } from '@angular/platform-browser'
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { faArchive, faEye, faHome, faTrashAlt, faUser } from '@fortawesome/free-solid-svg-icons'
 import { MatPaginator } from '@angular/material/paginator'
@@ -36,7 +35,6 @@ export class AdministrationComponent implements OnInit {
   private readonly dialog = inject(MatDialog)
   private readonly userService = inject(UserService)
   private readonly feedbackService = inject(FeedbackService)
-  private readonly sanitizer = inject(DomSanitizer)
   private readonly cookieService = inject(CookieService)
 
   public showToolCalls = signal(false)
@@ -70,9 +68,6 @@ export class AdministrationComponent implements OnInit {
       next: (users) => {
         this.userDataSource = users
         this.userDataSourceHidden = users
-        for (const user of this.userDataSource) {
-          user.email = this.sanitizer.bypassSecurityTrustHtml(`<span class="${this.doesUserHaveAnActiveSession(user) ? 'confirmation' : 'error'}">${user.email}</span>`)
-        }
         this.userDataSource = new MatTableDataSource(this.userDataSource)
         this.userDataSource.paginator = this.paginatorUsers
         this.resultsLengthUser = users.length
@@ -88,9 +83,6 @@ export class AdministrationComponent implements OnInit {
     this.feedbackService.find().subscribe({
       next: (feedbacks) => {
         this.feedbackDataSource = feedbacks
-        for (const feedback of this.feedbackDataSource) {
-          feedback.comment = this.sanitizer.bypassSecurityTrustHtml(feedback.comment)
-        }
         this.feedbackDataSource = new MatTableDataSource(this.feedbackDataSource)
         this.feedbackDataSource.paginator = this.paginatorFeedb
         this.resultsLengthFeedback = feedbacks.length
