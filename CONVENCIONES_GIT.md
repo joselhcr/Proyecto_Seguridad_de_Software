@@ -17,6 +17,12 @@ Formato: `PoC-<MÓDULO>-<NN>`
 | Operaciones / Transacciones | `OPE` | `PoC-OPE-01` … `PoC-OPE-04` |
 | Logs / Auditoría | `LOG` | `PoC-LOG-01` … `PoC-LOG-06` |
 
+### Controles de la matriz sin PoC
+
+Si un control de la Matriz de Gobernanza no tiene un PoC asociado, se usa `CTRL-<MÓDULO>-<NN>`, donde `NN` es la posición de la fila dentro de las filas de ese módulo en la matriz. No se crean IDs `PoC-` nuevos, porque esos corresponden a una prueba de explotación documentada.
+
+Ejemplos: `CTRL-USR-05`, rama `fix/CTRL-USR-05-credenciales`.
+
 ---
 
 ## 2. Ramas
@@ -47,9 +53,9 @@ git checkout -b fix/PoC-USR-03-login-parametrizado
 
 | Tipo | Cuándo usarlo | ¿PoC obligatorio? |
 |---|---|---|
-| `fix` | Se corrigió una vulnerabilidad en el código. **El más común.** | Sí |
-| `refactor` | Se reorganizó código sin cambiar su comportamiento | Sí |
-| `test` | Solo se agregaron o cambiaron pruebas | Sí |
+| `fix` | Se corrigió una vulnerabilidad en el código. **El más común.** | Sí (PoC o CTRL) |
+| `refactor` | Se reorganizó código sin cambiar su comportamiento | Sí (PoC o CTRL) |
+| `test` | Solo se agregaron o cambiaron pruebas | Sí (PoC o CTRL) |
 | `docs` | Solo documentación (informes, evidencias, README) | No |
 | `ci` | Cambios en los workflows de GitHub Actions | No |
 | `chore` | Mantenimiento (configuración, dependencias, `.gitignore`) | No |
@@ -71,6 +77,7 @@ git checkout -b fix/PoC-USR-03-login-parametrizado
 | `fix(PoC-USR-03): parametrizar consulta del login` | ✅ |
 | `fix(PoC-LOG-02): sanitizar saltos de línea antes de escribir en el log` | ✅ |
 | `refactor(PoC-OPE-01): mover validación del carrito a un middleware` | ✅ |
+| `fix(CTRL-USR-05): exigir la contraseña actual para cambiarla` | ✅ |
 | `docs: agregar matriz de riesgos actualizada` | ✅ |
 | `fix: arreglar login` | ❌ falta el PoC |
 | `fix(PoC-03): arreglar login` | ❌ falta el módulo |
