@@ -90,7 +90,13 @@ export const isAuthorized = () => {
 }
 export const denyAll = () => expressJwt({ secret: '' + Math.random() } as any)
 /* jsonwebtoken 0.4.0 ignores "expiresIn", it only understands "expiresInMinutes" */
-export const authorize = (user = {}) => jwt.sign(user, privateKey, { expiresInMinutes: 6 * 60, algorithm: jwtAlgorithm } as jwt.SignOptions)
+/* The password hash and the 2FA secret never leave the server, neither in a response nor inside a token */
+export const withoutCredentials = (user: any) => {
+  const { password, totpSecret, ...safeUser } = user?.get?.({ plain: true }) ?? user ?? {}
+  return safeUser
+}
+
+export const authorize = (user: any = {}) => jwt.sign(user.data ? { ...user, data: withoutCredentials(user.data) } : user, privateKey, { expiresInMinutes: 6 * 60, algorithm: jwtAlgorithm } as jwt.SignOptions)
 export const verify = (token: string) => token ? hasExpectedAlgorithm(token) && !isExpired(token) && (jws.verify as ((token: string, secret: string) => boolean))(token, publicKey) : false
 export const decode = (token: string) => { return jws.decode(token)?.payload }
 
