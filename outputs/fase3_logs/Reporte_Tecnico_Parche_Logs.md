@@ -4,10 +4,11 @@
 
 **Alcance de este parche:** PoC-LOG-01, PoC-LOG-05 y PoC-LOG-06
 
-**Base revisada:** `origin/master` (`dac885385`)
+**Base revisada:** `origin/master` después de integrar PR #13 (`89a65abfb8ecb253728efc5212ea72272ed9e194`)
 
 **Rama local:** `fix/logs-access-audit-hardening`
-**Estado:** cambios locales en revisión; no se afirma que exista un commit o PR para esta rama.
+
+**Estado:** PR #15 en preparación sobre la base actualizada; se conserva como borrador hasta terminar las verificaciones y revisión.
 
 ## Resumen de los cambios
 
@@ -28,9 +29,9 @@ El middleware de errores genérico de desarrollo se conserva para las demás rut
 | `npm run build:server` | Aprobado. |
 | ESLint para archivos modificados | Aprobado. |
 | `npm run lint` | Aprobado. |
-| `npm run test:api` completo | Rama de trabajo: 499 pruebas, 465 pasaron, 27 fallaron y 7 se omitieron. La copia limpia de `origin/master`: 537 pruebas, 497 pasaron, 33 fallaron y 7 se omitieron. Hay fallos coincidentes en Autenticación, perfil, 2FA, `saveLoginIp` y otros módulos; los totales diferentes impiden atribuir cada diferencia directamente a este parche. Las pruebas dirigidas de logs pasan. |
-| `npm run test:server` completo | Rama de trabajo: 418 pruebas, 408 pasaron, 5 fallaron y 5 se omitieron. Copia limpia de `origin/master`: 416 pruebas, 406 pasaron, 5 fallaron y 5 se omitieron. Son los mismos cinco fallos: una prueba Angular, una de `saveLoginIp` y tres de formato de fecha. Las dos pruebas unitarias añadidas pasan. |
-| `npm run rsn` | Rama de trabajo y copia limpia de `origin/master` reportan los mismos 28 codefix desincronizados, incluidos los cuatro de `accessLogDisclosureChallenge`. Las líneas de autorización añadidas llevan `hide-line` y no cambian el código expuesto por el reto. No se ejecutó `rsn:update` global. |
+| `npm run test:api` completo (base actualizada) | 540 pruebas: 503 pasaron, 30 fallaron y 7 se omitieron. Los fallos aparecen en 2FA, expectativas de exploits de login, `saveLoginIp`, reset de contraseña, perfil, usuarios y otros casos de retos. Las pruebas dirigidas de Logs pasan; los fallos de la suite completa requieren triage por los módulos correspondientes. |
+| `npm run test:server` completo (base actualizada) | 418 pruebas: 408 pasaron, 5 fallaron y 5 se omitieron. Los cinco fallos son: una prueba Angular, una de `saveLoginIp` y tres de formato de fecha. Las dos pruebas unitarias añadidas pasan. |
+| `npm run rsn` | Reporta 28 codefix desincronizados, incluidos `accessLogDisclosureChallenge` y `resetPasswordMortyChallenge`. Las líneas de autorización de logs usan `hide-line`. No se ejecutó `rsn:update` global. |
 
 ### Cobertura de regresión
 
@@ -48,20 +49,20 @@ Las pruebas de API verifican denegación de listado/descarga a anónimos y clien
 
 ## Dependencias y límites pendientes
 
-- LOG-04 (confianza en `X-Forwarded-For`) se mantiene pendiente de la decisión/merge del PR #13 de Camila. Este parche no reemplaza esa política compartida.
+- LOG-04 fue remediado por PR #13, integrado en `master` el 2 de noviembre de 2026. La aplicación confía en cabeceras reenviadas solo cuando se configura `TRUSTED_PROXY`; la verificación de conexión directa se documenta en el PR #14 de seguimiento.
 - LOG-02 y LOG-03 dependen de coordinación con Autenticación y Gestión de Usuarios, respectivamente.
 - Este parche no afirma remediar la falsificación CRLF de Morgan ni el enmascaramiento global de secretos en todos los loggers. Esos requisitos deben verificarse por separado antes de declarar todo el módulo de Logs/Auditoría al 100 %.
 - No se incluye evidencia de navegador ni capturas; deben añadirse después de ejecutar las comprobaciones en la instancia integrada.
 
-## Estado de PRs relacionados (consulta: 2026-11-01)
+## Estado de PRs relacionados (consulta: 2026-11-02)
 
-- [PR #13](https://github.com/joselhcr/Proyecto_Seguridad_de_Software/pull/13), de Camila, está abierto contra `master` en `b6e243469fe9c07720ed47eb083efb298198f574`. GitHub lo marca `BLOCKED` y `REVIEW_REQUIRED`; lint y formato de título pasan. Cambia `server.ts` en la configuración de proxy y añade eventos de auditoría para autenticación.
-- [PR #14](https://github.com/joselhcr/Proyecto_Seguridad_de_Software/pull/14), de Logs, está abierto contra `modulo-logs` (base `1618a611b173b4bf114028e6e02549950606e29d`) en `5e368811fa3e01153dde1db510cdc4832a1481f2`. El CI reporta fallos de RSN y de varias pruebas/matrices. Su diff contra esa base cambia la política de `trust proxy` a `false`, la misma línea que PR #13 cambia por una política configurable.
-- Esta rama parte de `master` (`dac885385b0632d5ca3387770a2fa84ee8a09198`) y no modifica la sección de confianza proxy. Aunque comparte `server.ts`, su funcionalidad LOG-01/05/06 no depende del cambio de PR #13. Para evitar duplicar LOG-04, dejar la resolución de ese hallazgo en PR #13 mientras el equipo decide el destino de PR #14.
+- [PR #13](https://github.com/joselhcr/Proyecto_Seguridad_de_Software/pull/13) está integrado en `master` mediante `89a65abfb8ecb253728efc5212ea72272ed9e194`.
+- [PR #14](https://github.com/joselhcr/Proyecto_Seguridad_de_Software/pull/14) quedó como prueba de regresión de LOG-04 sobre `master`; ya no modifica `trust proxy`. Su head actual es `3e39d9c2cc94c87f6cd72f86894651e7aa77a038`; lint y título pasan, y requiere revisión.
+- [PR #15](https://github.com/joselhcr/Proyecto_Seguridad_de_Software/pull/15) cubre LOG-01/05/06. Esta rama se rebasó localmente sobre el `master` nuevo; después de publicar los commits actualizados se ejecutarán sus checks.
 
 ## Trazabilidad Git
 
-**Commit de implementación:** `4d3268949122e91d21e9b1ead87bbcee5f5ca947` (firmado con DCO).
+**Commit de implementación:** `60e404dabc46e284014c6482c9e2e21e1cd59aa0` (firmado con DCO).
 
-**Pull Request de LOG-01/05/06:** [PR #15](https://github.com/joselhcr/Proyecto_Seguridad_de_Software/pull/15), abierto como borrador contra `master`. Consultar allí el estado vigente de CI y las revisiones antes de solicitar merge.
+**Pull Request de LOG-01/05/06:** [PR #15](https://github.com/joselhcr/Proyecto_Seguridad_de_Software/pull/15), borrador contra `master`; la rama se rebasó localmente sobre `89a65abfb` y espera publicación/verificación de checks.
 **Diff final:** disponible con `git show --stat --oneline HEAD` y `git show --format=fuller HEAD`.
