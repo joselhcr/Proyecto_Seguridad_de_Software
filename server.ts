@@ -12,6 +12,7 @@ import multer from 'multer'
 import helmet from 'helmet'
 import http from 'node:http'
 import path from 'node:path'
+import crypto from 'node:crypto'
 import express from 'express'
 import colors from 'colors/safe'
 import serveIndex from 'serve-index'
@@ -207,6 +208,23 @@ function configureApp (app: ReturnType<typeof express>, seq: typeof sequelize) {
     next()
   })
 
+  app.use((_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('X-Request-Id', crypto.randomUUID())
+    next()
+  })
+
+  /* Log requests before routes that may end the response early. */
+  const accessLogStream = getStream({
+    filename: path.resolve('logs/access.log.%DATE%'),
+    date_format: 'YYYY-MM-DD',
+    audit_file: 'logs/audit.json',
+    frequency: 'daily',
+    verbose: false,
+    max_logs: '2d'
+  })
+  morgan.token('request-id', (_req, res) => String(res.getHeader('X-Request-Id') ?? '-'))
+  app.use(morgan(':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent" :request-id', { stream: accessLogStream }))
+
   /* Increase request counter metric for every request */
   app.use(metrics.observeRequestMetricsMiddleware())
 
@@ -347,17 +365,6 @@ function configureApp (app: ReturnType<typeof express>, seq: typeof sequelize) {
     }
     next()
   })
-
-  /* HTTP request logging */
-  const accessLogStream = getStream({
-    filename: path.resolve('logs/access.log.%DATE%'),
-    date_format: 'YYYY-MM-DD',
-    audit_file: 'logs/audit.json',
-    frequency: 'daily',
-    verbose: false,
-    max_logs: '2d'
-  })
-  app.use(morgan('combined', { stream: accessLogStream }))
 
   // vuln-code-snippet start resetPasswordMortyChallenge
   /* Rate limiting */
