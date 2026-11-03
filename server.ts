@@ -207,6 +207,17 @@ function configureApp (app: ReturnType<typeof express>, seq: typeof sequelize) {
     next()
   })
 
+  /* Log requests before routes that may end the response early. */
+  const accessLogStream = getStream({
+    filename: path.resolve('logs/access.log.%DATE%'),
+    date_format: 'YYYY-MM-DD',
+    audit_file: 'logs/audit.json',
+    frequency: 'daily',
+    verbose: false,
+    max_logs: '2d'
+  })
+  app.use(morgan('combined', { stream: accessLogStream }))
+
   /* Increase request counter metric for every request */
   app.use(metrics.observeRequestMetricsMiddleware())
 
@@ -347,17 +358,6 @@ function configureApp (app: ReturnType<typeof express>, seq: typeof sequelize) {
     }
     next()
   })
-
-  /* HTTP request logging */
-  const accessLogStream = getStream({
-    filename: path.resolve('logs/access.log.%DATE%'),
-    date_format: 'YYYY-MM-DD',
-    audit_file: 'logs/audit.json',
-    frequency: 'daily',
-    verbose: false,
-    max_logs: '2d'
-  })
-  app.use(morgan('combined', { stream: accessLogStream }))
 
   // vuln-code-snippet start resetPasswordMortyChallenge
   /* Rate limiting */
