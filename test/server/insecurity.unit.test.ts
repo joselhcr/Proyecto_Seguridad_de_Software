@@ -196,6 +196,37 @@ void describe('insecurity', () => {
     })
   })
 
+  void describe('hashPassword', () => {
+    void it('stores passwords with scrypt and a random salt instead of MD5', () => {
+      const first = security.hashPassword('admin123')
+      const second = security.hashPassword('admin123')
+      assert.match(first, /^scrypt\$16384\$8\$1\$[A-Za-z0-9+/=]+\$[A-Za-z0-9+/=]+$/)
+      assert.notEqual(first, second)
+      assert.notEqual(first, security.hash('admin123'))
+    })
+  })
+
+  void describe('verifyPassword', () => {
+    void it('accepts the right password and rejects a wrong one', () => {
+      const stored = security.hashPassword('admin123')
+      assert.equal(security.verifyPassword('admin123', stored), true)
+      assert.equal(security.verifyPassword('admin124', stored), false)
+    })
+
+    void it('still accepts a legacy MD5 hash so existing accounts can log in once and be migrated', () => {
+      assert.equal(security.verifyPassword('admin123', '0192023a7bbd73250516f069df18b500'), true)
+      assert.equal(security.verifyPassword('wrong', '0192023a7bbd73250516f069df18b500'), false)
+      assert.equal(security.isLegacyPasswordHash('0192023a7bbd73250516f069df18b500'), true)
+      assert.equal(security.isLegacyPasswordHash(security.hashPassword('admin123')), false)
+    })
+
+    void it('rejects non-string input and malformed hashes', () => {
+      assert.equal(security.verifyPassword({ $ne: '' }, security.hashPassword('x')), false)
+      assert.equal(security.verifyPassword('x', ''), false)
+      assert.equal(security.verifyPassword('x', 'scrypt$broken'), false)
+    })
+  })
+
   void describe('hmac', () => {
     void it('returns SHA-256 HMAC with "pa4qacea4VK9t9nGv7yZtwmj" as salt any input string', () => {
       assert.equal(security.hmac('admin123'), '6be13e2feeada221f29134db71c0ab0be0e27eccfc0fb436ba4096ba73aafb20')

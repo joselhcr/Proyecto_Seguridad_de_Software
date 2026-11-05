@@ -28,3 +28,26 @@ jobs:
           npm install --ignore-scripts
       - name: "Lint source code"
         run: npm run lint
+  # PoC-AUT-06 (fila 15 de la Matriz de Gobernanza, ID.RA-01): identificar en cada PR
+  # las vulnerabilidades conocidas de las dependencias de producción.
+  dependency-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Check out Git repository"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 #v7.0.1
+      - name: "Use Node.js"
+        uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af #v4.1.0
+        with:
+          node-version: ${{ env.NODE_DEFAULT_VERSION }}
+      # El repositorio no versiona package-lock.json (.npmrc: package-lock=false) y npm audit lo necesita
+      - name: "Resolve dependency tree"
+        run: npm install --package-lock-only --ignore-scripts --package-lock=true
+      - name: "Run npm audit"
+        run: npm audit --omit=dev --audit-level=high --json > npm-audit.json || true
+      - name: "Publish audit summary"
+        run: node .github/scripts/npm-audit-summary.mjs npm-audit.json
+      - name: "Upload audit report"
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 #v4.6.2
+        with:
+          name: npm-audit-report
+          path: npm-audit.json

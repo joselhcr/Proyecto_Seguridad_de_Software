@@ -54,6 +54,40 @@ interface IAuthenticatedUsers {
 }
 
 export const hash = (data: string) => crypto.createHash('md5').update(data).digest('hex')
+
+/* Passwords are stored with scrypt: a random salt per user and a deliberately slow derivation, unlike MD5 which can be cracked offline in seconds */
+const passwordHashScheme = 'scrypt'
+const scryptCost = { N: 16384, r: 8, p: 1 }
+const scryptKeyLength = 64
+
+export const hashPassword = (password: string) => {
+  const salt = crypto.randomBytes(16)
+  const derivedKey = crypto.scryptSync(password, salt, scryptKeyLength, scryptCost)
+  return [passwordHashScheme, scryptCost.N, scryptCost.r, scryptCost.p, salt.toString('base64'), derivedKey.toString('base64')].join('$')
+}
+
+/* Accounts created before the migration still hold an unsalted MD5 hash until their next successful login */
+export const isLegacyPasswordHash = (storedHash: string) => !storedHash.startsWith(passwordHashScheme + '$')
+
+export const verifyPassword = (password: unknown, storedHash: unknown) => {
+  if (typeof password !== 'string' || typeof storedHash !== 'string' || storedHash === '') {
+    return false
+  }
+  try {
+    if (isLegacyPasswordHash(storedHash)) {
+      const given = Buffer.from(hash(password))
+      const stored = Buffer.from(storedHash)
+      return given.length === stored.length && crypto.timingSafeEqual(given, stored)
+    }
+    const [, N, r, p, salt, expected] = storedHash.split('$')
+    const expectedKey = Buffer.from(expected, 'base64')
+    const derivedKey = crypto.scryptSync(password, Buffer.from(salt, 'base64'), expectedKey.length, { N: Number(N), r: Number(r), p: Number(p) })
+    return crypto.timingSafeEqual(derivedKey, expectedKey)
+  } catch {
+    /* A malformed stored hash never authenticates */
+    return false
+  }
+}
 export const hmac = (data: string) => crypto.createHmac('sha256', 'pa4qacea4VK9t9nGv7yZtwmj').update(data).digest('hex')
 
 export const cutOffPoisonNullByte = (str: string) => {

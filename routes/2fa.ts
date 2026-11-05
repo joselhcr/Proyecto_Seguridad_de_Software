@@ -112,11 +112,13 @@ export async function setup (req: Request, res: Response) {
 
     const { password, setupToken, initialToken } = req.body
 
-    if (user.password !== security.hash(password)) {
+    /* The session no longer carries the password hash or the TOTP secret, so both are read from the database */
+    const storedUser = await UserModel.findByPk(user.id)
+    if (storedUser == null || !security.verifyPassword(password, storedUser.password)) {
       throw new Error('Password doesnt match stored password')
     }
 
-    if (user.totpSecret !== '') {
+    if (storedUser.totpSecret !== '') {
       throw new Error('User has 2fa already setup')
     }
 
@@ -157,7 +159,8 @@ export async function disable (req: Request, res: Response) {
 
     const { password } = req.body
 
-    if (user.password !== security.hash(password)) {
+    const storedUser = await UserModel.findByPk(user.id)
+    if (storedUser == null || !security.verifyPassword(password, storedUser.password)) {
       throw new Error('Password doesnt match stored password')
     }
 
