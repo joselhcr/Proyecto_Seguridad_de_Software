@@ -295,7 +295,8 @@ function configureApp (app: ReturnType<typeof express>, seq: typeof sequelize) {
     verbose: false,
     max_logs: '2d'
   })
-  app.use(morgan('combined', { stream: accessLogStream }))
+  morgan.token('request-id', (_req, res) => String(res.getHeader('X-Request-Id') ?? '-'))
+  app.use(morgan(':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer" ":user-agent" :request-id', { stream: accessLogStream }))
 
   // vuln-code-snippet start directoryListingChallenge accessLogDisclosureChallenge
   /* /ftp directory browsing and file download */ // vuln-code-snippet neutral-line directoryListingChallenge
