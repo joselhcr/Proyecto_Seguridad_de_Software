@@ -15,6 +15,8 @@ import { type User } from '../data/types'
 import * as utils from '../lib/utils'
 import { logAuthEvent } from '../lib/authAudit'
 
+const dummyPasswordHash = security.hashPassword(crypto.randomUUID())
+
 // vuln-code-snippet start loginAdminChallenge loginBenderChallenge loginJimChallenge
 export function login () {
   function afterLogin (user: User, res: Response, next: NextFunction) {
@@ -45,9 +47,15 @@ export function login () {
     }
     /* The ORM sends the email as a bound parameter and the paranoid model already excludes deleted users */
     UserModel.findOne({ where: { email } }) // vuln-code-snippet vuln-line loginAdminChallenge loginBenderChallenge loginJimChallenge
-      .then((foundUser) => { // vuln-code-snippet neutral-line loginAdminChallenge loginBenderChallenge loginJimChallenge
-        /* The password is checked in code instead of inside the query, with a constant-time comparison */
-        const authenticatedUser = foundUser !== null && passwordMatches(password, foundUser.password) ? foundUser : null
+      .then(async (foundUser) => { // vuln-code-snippet neutral-line loginAdminChallenge loginBenderChallenge loginJimChallenge
+        /* The password is checked in code instead of inside the query; unknown emails are checked against a dummy hash so the response time does not reveal which accounts exist */
+        const passwordIsValid = security.verifyPassword(password, foundUser?.password ?? dummyPasswordHash)
+        const authenticatedUser = foundUser !== null && passwordIsValid ? foundUser : null
+        if (authenticatedUser !== null && security.isLegacyPasswordHash(authenticatedUser.password)) {
+          /* The plain password is only known right now, so this is the moment to replace the legacy MD5 hash with scrypt */
+          await authenticatedUser.update({ password })
+          logAuthEvent(req, 'password_rehashed', true, { email, userId: authenticatedUser.id, reason: 'legacy_md5_hash', requestId })
+        }
         const user = utils.queryResultToJson(authenticatedUser)
         if (user.data?.id && user.data.totpSecret !== '') {
           logAuthEvent(req, 'login_attempt', true, { email: req.body.email, userId: user.data.id, reason: 'totp_required', requestId })
@@ -73,12 +81,6 @@ export function login () {
       })
   }
   // vuln-code-snippet end loginAdminChallenge loginBenderChallenge loginJimChallenge
-
-  function passwordMatches (password: string, storedHash: string) {
-    const given = Buffer.from(security.hash(password))
-    const stored = Buffer.from(storedHash ?? '')
-    return given.length === stored.length && crypto.timingSafeEqual(given, stored)
-  }
 
   function verifyPreLoginChallenges (req: Request) {
     challengeUtils.solveIf(challenges.weakPasswordChallenge, () => { return req.body.email === 'admin@' + config.get<string>('application.domain') && req.body.password === 'admin123' })

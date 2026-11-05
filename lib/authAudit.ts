@@ -44,7 +44,7 @@ function trackFailure (ip: string, requestId: string) {
   }
 }
 
-export function logAuthEvent (req: Request, event: 'login_attempt' | 'login_2fa_attempt', success: boolean, details: { email?: unknown, userId?: number, reason?: string, requestId: string }) {
+export function logAuthEvent (req: Request, event: 'login_attempt' | 'login_2fa_attempt' | 'password_rehashed', success: boolean, details: { email?: unknown, userId?: number, reason?: string, requestId: string }) {
   const ip = clientIp(req)
   write(success ? 'info' : 'warn', {
     event,

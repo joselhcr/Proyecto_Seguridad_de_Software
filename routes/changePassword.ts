@@ -44,7 +44,7 @@ export function changePassword () {
       }
 
       /* The current password is always required and is compared with the stored hash, so a stolen session cannot change it */
-      if (typeof currentPassword !== 'string' || security.hash(currentPassword) !== user.password) {
+      if (!security.verifyPassword(currentPassword, user.password)) {
         auditLog('password_change_denied', req, { userId: user.id }, 'warn')
         res.status(401).send(res.__('Current password is not correct.'))
         return
